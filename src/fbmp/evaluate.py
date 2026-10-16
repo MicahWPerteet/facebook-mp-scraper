@@ -21,7 +21,9 @@ You screen Facebook Marketplace listings for someone who buys items locally and 
 Target categories: {categories}.
 
 Keep a listing only if it is plausibly a specific, identifiable product in those categories that sells \
-on eBay, at an asking price low enough that a resale profit is possible.
+on eBay, and its typical used eBay sale price is high enough to clear at least ${min_profit:.0f} profit \
+over the asking price after roughly 15% eBay fees and shipping. Cheap items (most single games, \
+controllers and accessories) usually can't, so reject them unless they are clearly rare or valuable.
 Reject: wanted/ISO posts, items described as broken or for parts, bundles too vague to identify, \
 generic or unbranded goods, services, rentals, and anything outside the target categories.
 
@@ -49,10 +51,12 @@ Set confidence to high only when the product is unambiguous and at least 3 eBay 
 low when the product, configuration or condition is uncertain."""
 
 
-def triage(client: anthropic.Anthropic, listings: list[Listing], categories: list[str]) -> dict[str, TriageItem]:
+def triage(
+    client: anthropic.Anthropic, listings: list[Listing], categories: list[str], min_profit: float
+) -> dict[str, TriageItem]:
     """Cheap first pass over titles and prices. Returns verdicts keyed by listing id."""
     verdicts: dict[str, TriageItem] = {}
-    system = TRIAGE_SYSTEM.format(categories=", ".join(categories))
+    system = TRIAGE_SYSTEM.format(categories=", ".join(categories), min_profit=min_profit)
     for start in range(0, len(listings), TRIAGE_BATCH):
         batch = listings[start : start + TRIAGE_BATCH]
         payload = [{"id": l.id, "title": l.title, "price": l.price, "location": l.location} for l in batch]

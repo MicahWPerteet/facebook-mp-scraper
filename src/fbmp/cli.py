@@ -1,6 +1,7 @@
 import argparse
 import datetime as dt
 import logging
+import os
 import random
 import sys
 import time
@@ -47,14 +48,22 @@ def cmd_login(config: Config, args) -> int:
             "A Chrome window is open with the scraper's profile.\n"
             "Log in to Facebook there by hand (and finish any security check),\n"
             "then set your Marketplace location and radius on the Marketplace page.\n"
+            "Close the Chrome window when you're done; the session is saved automatically.",
+            flush=True,
         )
-        input("Press Enter here when you're done to save the session... ")
+        # Wait for the window rather than stdin, which isn't interactive in every shell.
+        b.context.wait_for_event("close", timeout=0)
+    print("Session saved.")
     return 0
 
 
 def cmd_run(config: Config, args) -> int:
     require_env("ANTHROPIC_API_KEY")
-    ebay = EbayClient(require_env("EBAY_CLIENT_ID"), require_env("EBAY_CLIENT_SECRET"))
+    if args.dry_run and not (os.environ.get("EBAY_CLIENT_ID") and os.environ.get("EBAY_CLIENT_SECRET")):
+        log.warning("no eBay keys: dry run will stop after triage")
+        ebay = None
+    else:
+        ebay = EbayClient(require_env("EBAY_CLIENT_ID"), require_env("EBAY_CLIENT_SECRET"))
     notifier = ConsoleNotifier() if args.dry_run else _telegram()
     # A dry run gets a throwaway database so it doesn't mark listings as already seen.
     db = DB(":memory:" if args.dry_run else config.db_path)
@@ -143,7 +152,9 @@ def main(argv: list[str] | None = None) -> int:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
     # httpx logs full request URLs, and the Telegram bot token is part of the URL.
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+    # httpx2 (used by the anthropic SDK) just adds a line per request.
+    for name in ("httpx", "httpx2"):
+        logging.getLogger(name).setLevel(logging.WARNING)
     load_env()
 
     if args.command in ("telegram-setup", "test-notify"):

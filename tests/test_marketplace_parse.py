@@ -17,7 +17,8 @@ def test_parse_price():
 def test_search_results():
     listings = parse_search_results((FIXTURES / "search.html").read_text())
     by_id = {l.id: l for l in listings}
-    assert list(by_id) == ["1111111111", "2222222222", "3333333333"]
+    # 4444444444 has no price; 6666666666 is marked Pending.
+    assert list(by_id) == ["1111111111", "2222222222", "3333333333", "5555555555"]
 
     drill = by_id["1111111111"]
     assert drill.price == 60  # current price, not the crossed-out $90
@@ -28,6 +29,10 @@ def test_search_results():
 
     assert by_id["2222222222"].price == 1250.50
     assert by_id["3333333333"].price == 0
+
+    badged = by_id["5555555555"]  # "Just listed" badge before the price
+    assert badged.price == 110 and badged.title == "Milwaukee M18 Hackzall (Tool-Only)"
+    assert badged.location == "Oklahoma City, OK"
 
 
 def test_detail():
@@ -46,3 +51,4 @@ def test_search_url():
     assert url.startswith("https://www.facebook.com/marketplace/seattle/search?")
     assert "query=dewalt+drill" in url and "maxPrice=150" in url and "minPrice" not in url
     assert "sortBy=creation_time_descend" in url
+    assert search_url("", SearchConfig(query="ps5"), 1).startswith("https://www.facebook.com/marketplace/search?")

@@ -69,7 +69,7 @@ class Browser:
 
     def __exit__(self, *exc) -> None:
         try:
-            self.context.close()
+            self.context.close()  # no-op if the user already closed the window
         finally:
             if self._pw:
                 self._pw.stop()

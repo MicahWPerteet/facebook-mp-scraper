@@ -29,7 +29,9 @@ def search_url(city: str, search: SearchConfig, days_since_listed: int) -> str:
         params["minPrice"] = search.min_price
     if search.max_price is not None:
         params["maxPrice"] = search.max_price
-    return f"https://www.facebook.com/marketplace/{city}/search?{urlencode(params)}"
+    # Without a city, Facebook searches around the location saved on the account.
+    path = f"marketplace/{city}/search" if city else "marketplace/search"
+    return f"https://www.facebook.com/{path}?{urlencode(params)}"
 
 
 def parse_price(text: str) -> float | None:
@@ -43,6 +45,7 @@ def parse_price(text: str) -> float | None:
 def _lines(node) -> list[str]:
     out: list[str] = []
     for s in node.stripped_strings:
+        s = " ".join(s.split())  # titles can contain line breaks
         if not out or out[-1] != s:
             out.append(s)
     return out
@@ -57,7 +60,13 @@ def parse_search_results(html: str) -> list[Listing]:
         if not m or m.group(1) in listings:
             continue
         lines = _lines(a)
-        # Cards read: current price, optional crossed-out old price, title, location.
+        # Cards read: optional badge ("Just listed"), current price, optional crossed-out
+        # old price, title, location.
+        badges = []
+        while lines and len(badges) < 2 and parse_price(lines[0]) is None:
+            badges.append(lines.pop(0).lower())
+        if any(b in {"sold", "pending"} for b in badges):
+            continue
         prices: list[float] = []
         while lines and (p := parse_price(lines[0])) is not None:
             prices.append(p)

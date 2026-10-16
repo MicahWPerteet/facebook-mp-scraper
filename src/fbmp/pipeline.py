@@ -28,7 +28,7 @@ class Pipeline:
         db: DB,
         browser: Browser,
         claude: anthropic.Anthropic,
-        ebay: EbayClient,
+        ebay: EbayClient | None,  # None: stop after triage (dry runs before eBay keys exist)
         notifier: Notifier,
     ):
         self.config = config
@@ -44,7 +44,9 @@ class Pipeline:
             log.info("no new listings this cycle")
             return []
 
-        verdicts = evaluate.triage(self.claude, listings, self.config.categories)
+        verdicts = evaluate.triage(
+            self.claude, listings, self.config.categories, self.config.thresholds.min_profit
+        )
         candidates = []
         for listing in listings:
             verdict = verdicts.get(listing.id)
@@ -54,6 +56,13 @@ class Pipeline:
                 self.db.mark(listing, "rejected")
             # No verdict (e.g. a failed triage call): leave unseen so the next cycle retries it.
         log.info("%d new listings, %d passed triage", len(listings), len(candidates))
+        if self.ebay is None:
+            for listing, verdict in candidates:
+                self.notifier.send_text(
+                    f"would evaluate: ${listing.price:.0f} {listing.title!r} -> {verdict.product}"
+                    f" (eBay query {verdict.ebay_query!r}) {listing.url}"
+                )
+            return []
 
         # Anything past the per-cycle cap stays unseen and gets picked up next cycle.
         deals = []

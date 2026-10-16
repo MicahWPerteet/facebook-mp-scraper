@@ -1,9 +1,9 @@
 # Copy to config.toml and edit.
 
-# The part after /marketplace/ when you browse Marketplace for your area, e.g.
-# facebook.com/marketplace/seattle/ -> "seattle" (some areas use a numeric id instead).
-# Search radius comes from the location you set on Marketplace during `fbmp login`.
-city = "seattle"
+# Empty: search around the Marketplace location and radius saved on your account
+# (set them during `fbmp login`). Or set the slug after /marketplace/ in the URL,
+# e.g. facebook.com/marketplace/seattle/ -> "seattle", to search somewhere else.
+city = ""
 days_since_listed = 1
 categories = ["electronics", "tools & equipment"]
 

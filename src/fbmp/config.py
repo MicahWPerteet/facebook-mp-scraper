@@ -33,7 +33,7 @@ class ThresholdConfig(BaseModel):
 
 
 class Config(BaseModel):
-    city: str  # the slug in facebook.com/marketplace/<city>/
+    city: str = ""  # slug in facebook.com/marketplace/<city>/; empty = the account's saved location
     days_since_listed: int = 1
     categories: list[str] = Field(default_factory=lambda: ["electronics", "tools & equipment"])
     searches: list[SearchConfig]
