@@ -25,7 +25,8 @@ Keep a listing only if it is plausibly a specific, identifiable product in those
 on eBay, and its typical used eBay sale price is high enough to clear at least ${min_profit:.0f} profit \
 over the asking price after roughly 15% eBay fees and shipping. Cheap items (most single games, \
 controllers and accessories) usually can't, so reject them unless they are clearly rare or valuable.
-Reject: wanted/ISO posts, items described as broken or for parts, bundles too vague to identify, \
+Reject: wanted/ISO posts, trade-only posts (e.g. "(Trade)", "trade only", "looking to trade"; \
+"cash or trade" is fine), items described as broken or for parts, bundles too vague to identify, \
 generic or unbranded goods, services, rentals, and anything outside the target categories.
 
 For every listing, return one item with its id. For kept listings, give the most specific product name \
