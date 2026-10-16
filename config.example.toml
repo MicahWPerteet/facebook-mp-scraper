@@ -1,0 +1,42 @@
+# Copy to config.toml and edit.
+
+# The part after /marketplace/ when you browse Marketplace for your area, e.g.
+# facebook.com/marketplace/seattle/ -> "seattle" (some areas use a numeric id instead).
+# Search radius comes from the location you set on Marketplace during `fbmp login`.
+city = "seattle"
+days_since_listed = 1
+categories = ["electronics", "tools & equipment"]
+
+# Keep this list short: every search is a page load on your account.
+[[searches]]
+query = "dewalt"
+max_price = 300
+
+[[searches]]
+query = "milwaukee m18"
+max_price = 300
+
+[[searches]]
+query = "nintendo switch"
+max_price = 200
+
+[[searches]]
+query = "gpu rtx"
+min_price = 50
+max_price = 500
+
+[schedule]
+interval_minutes = [30, 60]      # random wait between cycles
+quiet_start_hour = 23            # no activity from 23:00...
+quiet_end_hour = 8               # ...until 08:00 local time
+max_searches_per_cycle = 6
+max_details_per_cycle = 10       # detail pages opened per cycle
+action_delay_seconds = [4, 12]   # random pause between page actions
+
+[thresholds]
+min_profit = 75                  # USD, after eBay fees and shipping
+min_margin = 0.40                # profit / asking price
+min_confidence = "medium"        # low | medium | high
+min_comps = 3                    # matching eBay listings required
+ebay_fee_rate = 0.136
+active_to_sold_ratio = 0.85      # eBay active asking prices -> expected sold price

@@ -1,0 +1,28 @@
+[project]
+name = "fbmp"
+version = "0.1.0"
+description = "Watch Facebook Marketplace for underpriced electronics and tools, value them against eBay sold prices, and alert via Telegram."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=1.15",
+    "beautifulsoup4>=4.12",
+    "httpx>=0.27",
+    "playwright>=1.49",
+    "pydantic>=2",
+]
+
+[project.scripts]
+fbmp = "fbmp.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
