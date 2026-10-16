@@ -4,6 +4,7 @@ import time
 from pathlib import Path
 
 from .models import Comp, Deal, Listing
+from .usage import Usage
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS listings (
@@ -19,6 +20,14 @@ CREATE TABLE IF NOT EXISTS evaluations (
     profit REAL NOT NULL,
     alerted INTEGER NOT NULL,
     created REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS claude_usage (
+    ts REAL NOT NULL,
+    step TEXT NOT NULL,
+    model TEXT NOT NULL,
+    input_tokens INTEGER NOT NULL,
+    output_tokens INTEGER NOT NULL,
+    cost REAL  -- NULL when the model has no known price
 );
 CREATE TABLE IF NOT EXISTS comp_cache (
     query TEXT PRIMARY KEY,
@@ -55,6 +64,18 @@ class DB:
                 " VALUES (?, ?, ?, ?, ?)",
                 (deal.listing.id, deal.model_dump_json(), deal.profit, int(alerted), time.time()),
             )
+
+    def record_usage(self, usage: Usage) -> None:
+        with self.conn:
+            self.conn.execute(
+                "INSERT INTO claude_usage (ts, step, model, input_tokens, output_tokens, cost)"
+                " VALUES (?, ?, ?, ?, ?, ?)",
+                (time.time(), usage.step, usage.model, usage.input_tokens, usage.output_tokens, usage.cost),
+            )
+
+    def cost_since(self, ts: float) -> float:
+        row = self.conn.execute("SELECT COALESCE(SUM(cost), 0) FROM claude_usage WHERE ts >= ?", (ts,)).fetchone()
+        return row[0]
 
     def cached_comps(self, query: str, max_age_seconds: float) -> list[Comp] | None:
         row = self.conn.execute(

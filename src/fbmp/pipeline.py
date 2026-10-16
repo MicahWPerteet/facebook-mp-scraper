@@ -1,5 +1,6 @@
 """One scrape-evaluate-alert cycle."""
 
+import datetime
 import logging
 import random
 import time
@@ -14,6 +15,7 @@ from .db import DB
 from .ebay import EbayClient
 from .models import Comp, Deal, Listing
 from .notify import Notifier
+from .usage import CostTracker
 
 log = logging.getLogger(__name__)
 
@@ -39,13 +41,25 @@ class Pipeline:
         self.notifier = notifier
 
     def run_cycle(self) -> list[Deal]:
+        self.costs = CostTracker(sink=self.db.record_usage)
+        try:
+            return self._run_cycle()
+        finally:  # log spend even when the cycle ends early or raises
+            if self.costs.calls:
+                midnight = datetime.datetime.combine(datetime.date.today(), datetime.time()).timestamp()
+                log.info(
+                    "Claude cost this cycle: %s; today so far: $%.4f",
+                    self.costs.summary(), self.db.cost_since(midnight),
+                )
+
+    def _run_cycle(self) -> list[Deal]:
         listings = self._search()
         if not listings:
             log.info("no new listings this cycle")
             return []
 
         verdicts = evaluate.triage(
-            self.claude, listings, self.config.categories, self.config.thresholds.min_profit
+            self.claude, listings, self.config.categories, self.config.thresholds.min_profit, self.costs
         )
         candidates = []
         for listing in listings:
@@ -106,7 +120,7 @@ class Pipeline:
             self.db.mark(listing, "no_comps")
             return None
 
-        valuation = evaluate.value(self.claude, listing, product, comps, photos)
+        valuation = evaluate.value(self.claude, listing, product, comps, photos, self.costs)
         if valuation is None:
             self.db.mark(listing, "error")
             return None

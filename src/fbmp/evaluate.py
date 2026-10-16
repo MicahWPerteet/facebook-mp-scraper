@@ -9,6 +9,7 @@ import anthropic
 
 from .config import ThresholdConfig
 from .models import CONFIDENCE_RANK, Comp, Deal, Listing, TriageItem, TriageResult, Valuation
+from .usage import CostTracker
 
 log = logging.getLogger(__name__)
 
@@ -52,7 +53,11 @@ low when the product, configuration or condition is uncertain."""
 
 
 def triage(
-    client: anthropic.Anthropic, listings: list[Listing], categories: list[str], min_profit: float
+    client: anthropic.Anthropic,
+    listings: list[Listing],
+    categories: list[str],
+    min_profit: float,
+    costs: CostTracker | None = None,
 ) -> dict[str, TriageItem]:
     """Cheap first pass over titles and prices. Returns verdicts keyed by listing id."""
     verdicts: dict[str, TriageItem] = {}
@@ -68,6 +73,8 @@ def triage(
             output_format=TriageResult,
             output_config={"effort": "low"},
         )
+        if costs:
+            costs.record("triage", resp)
         if resp.stop_reason == "refusal" or resp.parsed_output is None:
             log.warning("triage returned no result (stop_reason=%s)", resp.stop_reason)
             continue
@@ -82,6 +89,7 @@ def value(
     product_hint: str,
     comps: list[Comp],
     photos: list[tuple[bytes, str]],
+    costs: CostTracker | None = None,
 ) -> Valuation | None:
     """Detailed valuation of one listing against its eBay comps, using its photos."""
     content: list[dict] = [
@@ -117,6 +125,8 @@ def value(
         betas=["server-side-fallback-2026-07-01"],
         fallbacks="default",
     )
+    if costs:
+        costs.record("valuation", resp)
     if resp.stop_reason == "refusal" or resp.parsed_output is None:
         log.warning("valuation returned no result for %s (stop_reason=%s)", listing.id, resp.stop_reason)
         return None
